@@ -5,6 +5,10 @@ import os
 import datetime 
 from telegram import InputFile
 import random 
+import openai
+import wikipedia
+import qrcode
+from io import BytesIO
 
 #       HELLO
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -114,19 +118,23 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Chào mừng bạn đến với bot của chúng tôi!')
+    await update.message.reply_text('Bot này hỗ trợ các lệnh sau:')
     commands = [
         "/hello - Chào hỏi",
-        "/help - Hướng dẫn",
-        "/weather - Xem thời tiết",
-        "/photo - Gửi ảnh",
-        "/video - Gửi video",
-        "/link - Liên kết"
-        ,"/news - Tin tức mới "
-        ,"/send_files - Gửi file "
+        "/help - Hướng dẫn sử dụng bot",
+        "/weather <thành phố> - Xem thời tiết (ví dụ: /weather Hanoi)",
+        "/photo - Gửi ảnh mẫu và ảnh từ thư mục",
+        "/video - Gửi video mẫu và video từ thư mục",
+        "/link - Liên kết Facebook, Github, Zalo",
+        "/news - Tin tức mới nhất về Việt Nam",
+        "/send_files <thư mục> - Gửi file từ thư mục (ví dụ: /send_files D:/tailieu)",
+        "/ask <câu hỏi> - Hỏi AI ChatGPT (ví dụ: /ask TSPRO là ai?)",
+        "/wiki <từ khóa> - Tóm tắt Wikipedia (ví dụ: /wiki định luật II newton)",
+        "/qr <nội dung> - Tạo mã QR (ví dụ: /qr TSPRO)",
     ]
-    await update.message.reply_text("Các lệnh bạn có thể dùng:")
     for cmd in commands:
         await update.message.reply_text(cmd)
+    await update.message.reply_text('Bạn hãy nhập lệnh để trải nghiệm!')
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -193,6 +201,39 @@ async def send_files(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                     await update.message.reply_document(document=InputFile(f), caption=filename)
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    question = " ".join(context.args)
+    if not question:
+        await update.message.reply_text("Bạn hãy nhập câu hỏi sau /ask.")
+        return
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": question}]
+    )
+    answer = response.choices[0].message.content
+    await update.message.reply_text(answer)
+
+async def wiki(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = " ".join(context.args)
+    if not query:
+        await update.message.reply_text("Bạn hãy nhập từ khóa sau /wiki.")
+        return
+    try:
+        summary = wikipedia.summary(query, sentences=3)
+        await update.message.reply_text(summary)
+    except Exception as e:
+        await update.message.reply_text(f"Không tìm thấy thông tin: {e}")
+
+async def qr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = " ".join(context.args)
+    if not text:
+        await update.message.reply_text("Bạn hãy nhập nội dung sau /qr.")
+        return
+    img = qrcode.make(text)
+    bio = BytesIO()
+    img.save(bio, format='PNG')
+    bio.seek(0)
+    await update.message.reply_photo(photo=InputFile(bio, filename="qr.png"))
 
 
 app = ApplicationBuilder().token("8306680899:AAFeG5NXM0N_fPDbFiF2GWbF-2M5yVFiS9U").build()
@@ -206,5 +247,8 @@ app.add_handler(CommandHandler("video", video))
 app.add_handler(CommandHandler("link", link))
 app.add_handler(CommandHandler("news", news ))
 app.add_handler(CommandHandler("send_files", send_files))
+app.add_handler(CommandHandler("ask", ask))
+app.add_handler(CommandHandler("wiki", wiki))
+app.add_handler(CommandHandler("qr", qr))
 
 app.run_polling()
