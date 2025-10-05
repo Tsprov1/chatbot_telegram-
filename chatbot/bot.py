@@ -9,7 +9,7 @@ import random
 #       HELLO
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Chào cái gì mà chào :3 ) ')
+    await update.message.reply_text(f'welcome to TSPRO :3 ) ')
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 
